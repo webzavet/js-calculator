@@ -1,54 +1,54 @@
-let calculator = new Calculator();
+import { Calculator } from './calculator.js';
 
-let input = document.querySelector('.input');
-calculator.expression = input.textContent;
+const input = document.querySelector('.input');
+const calculator = new Calculator(input);
 
+const buttons = document.querySelectorAll('.item');
 
-function insert(num) {
-    calculator.insert(num)
-}
+buttons.forEach(button => {
+    button.addEventListener('click', () => {
+        const action = button.dataset.action;
+        const value = button.dataset.value;
 
-function clean() {
-    calculator.clean()
-}
-
-function equal() {
-    calculator.equal()
-}
-
-function percent() {
-    calculator.percent()
-}
-
-function back() {
-    calculator.back()
-}
-
-function piNumber() {
-    calculator.piNumber()
-}
-
-function eNumber() {
-    calculator.eNumber()
-}
-
-function degree(operation) {
-    calculator.degree(operation)
-}
-
-function fact() {
-    calculator.fact()
-}
-
-function log(name) {
-    calculator.log(name)
-}
-
-function toggleAngleMode() {
-    calculator.toggleAngleMode()
-}
-
-function trigonometry(name) {
-    calculator.trigonometry(name)
-}
-
+        switch (action) {
+            case 'insert':
+                calculator.insert(value);
+                break;
+            case 'clean':
+                calculator.clean();
+                break;
+            case 'equal':
+                calculator.equal();
+                break;
+            case 'percent':
+                calculator.percent();
+                break;
+            case 'back':
+                calculator.back();
+                break;
+            case 'pi':
+                calculator.piNumber();
+                break;
+            case 'e':
+                calculator.eNumber();
+                break;
+            case 'degree':
+                calculator.degree(value);
+                break;
+            case 'fact':
+                calculator.fact();
+                break;
+            case 'log':
+                calculator.log(value);
+                break;
+            case 'toggleAngle':
+                calculator.toggleAngleMode();
+                break;
+            case 'trig':
+                calculator.trigonometry(value);
+                break;
+            default:
+                break;
+        }
+    });
+});

@@ -1,8 +1,10 @@
-class Calculator {
-    constructor() {
-        this._expression = '';
+export class Calculator {
+    constructor(displayElement) {
+        this._expression = '0';
         this._context = '';
         this._angleMode = 'deg'; // 'deg' or 'rad'
+        this.display = displayElement;
+        this.updateDisplay();
     }
 
     get expression() {
@@ -10,12 +12,9 @@ class Calculator {
     }
 
     set expression(value) {
-        if (typeof value !== 'string') {
-            throw new TypeError('Expression must be a string');
-        }
+        if (typeof value !== 'string') throw new TypeError('Expression must be a string');
         this._expression = value;
-
-        console.log(this.expression, this.context);
+        this.updateDisplay();
     }
 
     get context() {
@@ -23,9 +22,7 @@ class Calculator {
     }
 
     set context(value) {
-        if (typeof value !== 'string') {
-            throw new TypeError('Context must be a string');
-        }
+        if (typeof value !== 'string') throw new TypeError('Context must be a string');
         this._context = value;
     }
 
@@ -34,13 +31,12 @@ class Calculator {
     }
 
     set angleMode(value) {
-        if (typeof value !== 'string') {
-            throw new TypeError('Angle mode must be a string');
-        }
-        if (value !== 'deg' && value !== 'rad') {
-            throw new Error('Angle mode must be either "deg" or "rad"');
-        }
+        if (value !== 'deg' && value !== 'rad') throw new Error('Angle mode must be either "deg" or "rad"');
         this._angleMode = value;
+    }
+
+    updateDisplay() {
+        this.display.textContent = this._expression;
     }
 
     insert(num) {
@@ -48,29 +44,29 @@ class Calculator {
             this._expression = '';
         }
         this._expression += num;
+        this.updateDisplay();
     }
 
     clean() {
         this._expression = '0';
         this._context = '';
         this._angleMode = 'deg';
-
-        console.log(this.expression, this.context);
+        this.updateDisplay();
     }
 
     equal() {
-        let exp = this._expression;
-        if (this._expression.includes('^')) {
-            let tmp = this._expression.split('^')
-            let num = eval(power);
-            let pow = +tmp[1]
-            this._expression = Math.pow(num, pow);
-            power = "";
-            return;
+        try {
+            if (this._expression.includes('^')) {
+                const [base, exponent] = this._expression.split('^');
+                const result = Math.pow(eval(base), eval(exponent));
+                this._expression = result.toString();
+            } else {
+                this._expression = eval(this._expression).toString();
+            }
+        } catch (e) {
+            this._expression = 'Error';
         }
-        if (exp) {
-            this._expression = eval(exp);
-        }
+        this.updateDisplay();
     }
 
     back() {
@@ -79,30 +75,33 @@ class Calculator {
         } else {
             this._expression = this._expression.slice(0, -1);
         }
+        this.updateDisplay();
     }
 
     percent() {
-        this._expression = eval(this._expression) / 100;
+        try {
+            this._expression = (eval(this._expression) / 100).toString();
+        } catch {
+            this._expression = 'Error';
+        }
+        this.updateDisplay();
     }
 
     piNumber() {
-        if (this._expression === '0') {
-            this._expression = '';
-        }
+        if (this._expression === '0') this._expression = '';
         this._expression += Math.PI.toFixed(8);
+        this.updateDisplay();
     }
 
     eNumber() {
-        if (this._expression === '0') {
-            this._expression = '';
-        }
+        if (this._expression === '0') this._expression = '';
         this._expression += Math.E.toFixed(8);
+        this.updateDisplay();
     }
 
     degree(name) {
         try {
             const value = parseFloat(eval(this._expression));
-
             let result;
 
             switch (name) {
@@ -120,24 +119,25 @@ class Calculator {
             }
 
             this._expression = result.toString();
-        } catch (error) {
-            console.error('Calculation error:', error);
+        } catch {
             this._expression = 'Error';
         }
+        this.updateDisplay();
     }
 
     fact() {
-        const factorial = function(n) {
-            return (n !== 1) ? n * factorial(n - 1) : 1;
+        const factorial = function (n) {
+            if (n < 0 || !Number.isInteger(n)) throw new Error('Invalid input');
+            return n <= 1 ? 1 : n * factorial(n - 1);
         };
 
         try {
             const value = +eval(this._expression);
             this._expression = factorial(value).toString();
-        } catch (err) {
-            console.error('Factorial error:', err);
+        } catch {
             this._expression = 'Error';
         }
+        this.updateDisplay();
     }
 
     log(name) {
@@ -145,37 +145,34 @@ class Calculator {
             const value = +eval(this._expression);
             let result;
 
+            if (value <= 0) throw new Error('Log undefined for <= 0');
+
             if (name === 'lg') {
-                if (value <= 0) throw new Error("Log base 10 undefined for <= 0");
                 result = Math.log10(value);
             } else if (name === 'ln') {
-                if (value <= 0) throw new Error("Natural log undefined for <= 0");
                 result = Math.log(value);
             } else {
                 throw new Error(`Unknown log type: ${name}`);
             }
 
-            this._expression = result.toFixed(8);
-        } catch (error) {
-            console.error('Log error:', error);
+            this._expression = Number(result.toFixed(8)).toString();
+        } catch {
             this._expression = 'Error';
         }
+        this.updateDisplay();
     }
 
     toggleAngleMode() {
         this._angleMode = this._angleMode === 'deg' ? 'rad' : 'deg';
+        this.updateDisplay();
     }
 
     trigonometry(name) {
         try {
             let value = +eval(this._expression);
-
-            if (this._angleMode === 'deg') {
-                value = value * Math.PI / 180;
-            }
+            if (this._angleMode === 'deg') value = value * Math.PI / 180;
 
             let result;
-
             switch (name) {
                 case 'sin':
                     result = Math.sin(value);
@@ -188,7 +185,7 @@ class Calculator {
                     break;
                 case 'ctg':
                     const tan = Math.tan(value);
-                    if (tan === 0) throw new Error('Cotangent undefined for this value');
+                    if (tan === 0) throw new Error('Cotangent undefined');
                     result = 1 / tan;
                     break;
                 default:
@@ -196,9 +193,9 @@ class Calculator {
             }
 
             this._expression = Number(result.toFixed(8)).toString();
-        } catch (error) {
-            console.error('Trigonometry error:', error);
+        } catch {
             this._expression = 'Error';
         }
+        this.updateDisplay();
     }
 }
