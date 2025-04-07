@@ -1,55 +1,83 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Калькулятор</title>
+    <meta charset="utf-8">
+    <title>Calculator</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 
 <div class="container">
-    <div class="item input">0</div>
+    <!-- Верхня панель -->
+    <div class="result-panel">
+        <div class="convert-column">
+            <div class="convert">length</div>
+            <div class="convert">weights</div>
+            <div class="convert">area</div>
+            <div class="convert">num. sys.</div>
+        </div>
+        <div class="input-area">
+            <div class="convert-row">
+                <select id="fromUnit">
+                    <option value="" disabled selected>from:</option>
+                </select>
+                <select id="toUnit">
+                    <option value="" disabled selected>to:</option>
+                </select>
+            </div>
+            <div class="input" contenteditable="false">0</div>
+        </div>
+    </div>
 
-    <div class="item type" data-action="toggleAngle">deg</div>
-    <div class="item" data-action="trig" data-value="sin">sin</div>
-    <div class="item" data-action="trig" data-value="cos">cos</div>
-    <div class="item" data-action="trig" data-value="tan">tan</div>
-    <div class="item" data-action="trig" data-value="ctg">ctg</div>
+    <!-- Кнопки -->
+    <div class="keypad">
 
-    <div class="item" data-action="degree" data-value="^">x<span class="upper">y</span></div>
-    <div class="item" data-action="log" data-value="lg">lg</div>
-    <div class="item" data-action="log" data-value="ln">ln</div>
-    <div class="item" data-action="insert" data-value="(">(</div>
-    <div class="item" data-action="insert" data-value=")">)</div>
+        <!-- 1 рядок -->
+        <div class="item" data-action="back">←</div>
+        <div class="item" data-action="trig" data-value="sin">sin</div>
+        <div class="item" data-action="clean">C</div>
+        <div class="item" data-action="insert" data-value="(">(</div>
+        <div class="item" data-action="insert" data-value=")">)</div>
+        <div class="item" data-action="percent">%</div>
+        <div class="item" data-action="insert" data-value="/">÷</div>
 
-    <div class="item" data-action="degree" data-value="sqr">x<span class="upper">2</span></div>
-    <div class="item clean" data-action="clean">C</div>
-    <div class="item back" data-action="back">&lArr;</div>
-    <div class="item percent" data-action="percent">%</div>
-    <div class="item divide" data-action="insert" data-value="/">&divide;</div>
+        <!-- 2 рядок -->
+        <div class="item" data-action="memory">MR</div>
+        <div class="item" data-action="trig" data-value="cos">cos</div>
+        <div class="item" data-action="degree" data-value="^">x<span class="upper">n</span></div>
+        <div class="item" data-action="insert" data-value="7">7</div>
+        <div class="item" data-action="insert" data-value="8">8</div>
+        <div class="item" data-action="insert" data-value="9">9</div>
+        <div class="item" data-action="insert" data-value="*">×</div>
 
-    <div class="item" data-action="degree" data-value="^-1">x<span class="upper">-1</span></div>
-    <div class="item" data-action="insert" data-value="7">7</div>
-    <div class="item" data-action="insert" data-value="8">8</div>
-    <div class="item" data-action="insert" data-value="9">9</div>
-    <div class="item mul" data-action="insert" data-value="*">&times;</div>
+        <!-- 3 рядок -->
+        <div class="item" data-action="memory">MC</div>
+        <div class="item" data-action="trig" data-value="tan">tan</div>
+        <div class="item" data-action="degree" data-value="sqrt">&radic;x</div>
+        <div class="item" data-action="insert" data-value="4">4</div>
+        <div class="item" data-action="insert" data-value="5">5</div>
+        <div class="item" data-action="insert" data-value="6">6</div>
+        <div class="item" data-action="insert" data-value="+">+</div>
 
-    <div class="item" data-action="degree" data-value="sqrt">&radic;x</div>
-    <div class="item" data-action="insert" data-value="4">4</div>
-    <div class="item" data-action="insert" data-value="5">5</div>
-    <div class="item" data-action="insert" data-value="6">6</div>
-    <div class="item sub" data-action="insert" data-value="-">-</div>
+        <!-- 4 рядок -->
+        <div class="item" data-action="memory">M+</div>
+        <div class="item" data-action="trig" data-value="ctg">ctg</div>
+        <div class="item" data-action="fact">x!</div>
+        <div class="item" data-action="insert" data-value="1">1</div>
+        <div class="item" data-action="insert" data-value="2">2</div>
+        <div class="item" data-action="insert" data-value="3">3</div>
+        <div class="item" data-action="insert" data-value="-">−</div>
 
-    <div class="item" data-action="fact">x!</div>
-    <div class="item" data-action="insert" data-value="1">1</div>
-    <div class="item" data-action="insert" data-value="2">2</div>
-    <div class="item" data-action="insert" data-value="3">3</div>
-    <div class="item add" data-action="insert" data-value="+">+</div>
+        <!-- 5 рядок -->
+        <div class="item" data-action="memory">M-</div>
+        <div class="item" data-action="history">Copy</div>
+        <div class="item" data-action="history">Paste</div>
+        <div class="item" data-action="insert" data-value="0">0</div>
+        <div class="item" data-action="insert" data-value=".">.</div>
+        <div class="item equal" data-action="equal">=</div>
 
-    <div class="item" data-action="piNumber">&prod;</div>
-    <div class="item" data-action="eNumber">e</div>
-    <div class="item zero" data-action="insert" data-value="0">0</div>
-    <div class="item" data-action="insert" data-value=".">,</div>
-    <div class="item equal" data-action="equal">=</div>
+    </div>
 </div>
 
 <script type="module" src="js/script.js"></script>
