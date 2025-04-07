@@ -2,7 +2,10 @@ export class Calculator {
     constructor(displayElement) {
         this._expression = '0';
         this._context = '';
-        this._angleMode = 'deg'; // 'deg' or 'rad'
+        this._memory = 0;
+        this._buffer = null; // Додаємо буфер
+        this._history = []; // Додаємо історію обчислень
+        this._historyIndex = -1; // Додаємо індекс історії
         this.display = displayElement;
         this.updateDisplay();
     }
@@ -26,15 +29,6 @@ export class Calculator {
         this._context = value;
     }
 
-    get angleMode() {
-        return this._angleMode;
-    }
-
-    set angleMode(value) {
-        if (value !== 'deg' && value !== 'rad') throw new Error('Angle mode must be either "deg" or "rad"');
-        this._angleMode = value;
-    }
-
     updateDisplay() {
         this.display.textContent = this._expression;
     }
@@ -50,24 +44,27 @@ export class Calculator {
     clean() {
         this._expression = '0';
         this._context = '';
-        this._angleMode = 'deg';
         this.updateDisplay();
     }
 
     equal() {
         try {
-            if (this._expression.includes('^')) {
-                const [base, exponent] = this._expression.split('^');
-                const result = Math.pow(eval(base), eval(exponent));
-                this._expression = result.toString();
-            } else {
-                this._expression = eval(this._expression).toString();
-            }
+            let expr = this._expression;
+
+            expr = expr.replace(/(\d+(?:\.\d+)?|\([^\)]+\))\^\(([^)]+)\)/g, 'Math.pow($1,$2)');
+
+            expr = expr.replace(/(\d+(?:\.\d+)?)\^(\d+(?:\.\d+)?)/g, 'Math.pow($1,$2)');
+
+            const result = eval(expr);
+            this._expression = result.toString();
+            this._history.push(this._expression); // Додаємо результат до історії
+            this._historyIndex = this._history.length - 1;
         } catch (e) {
             this._expression = 'Error';
         }
         this.updateDisplay();
     }
+
 
     back() {
         if (this._expression.length <= 1 || this._expression === '0') {
@@ -87,38 +84,16 @@ export class Calculator {
         this.updateDisplay();
     }
 
-    piNumber() {
-        if (this._expression === '0') this._expression = '';
-        this._expression += Math.PI.toFixed(8);
-        this.updateDisplay();
-    }
-
-    eNumber() {
-        if (this._expression === '0') this._expression = '';
-        this._expression += Math.E.toFixed(8);
-        this.updateDisplay();
-    }
-
     degree(name) {
         try {
-            const value = parseFloat(eval(this._expression));
-            let result;
-
-            switch (name) {
-                case 'sqrt':
-                    result = Math.sqrt(value);
-                    break;
-                case 'sqr':
-                    result = Math.pow(value, 2);
-                    break;
-                case '^-1':
-                    result = Math.pow(value, -1);
-                    break;
-                default:
-                    throw new Error(`Unknown operation: ${name}`);
+            if (name === '^') {
+                this._expression += '^(';
+            } else if (name === 'sqrt') {
+                const result = Math.sqrt(this._expression);
+                this._expression = result.toString();
+            } else {
+                throw new Error(`Unknown operation: ${name}`);
             }
-
-            this._expression = result.toString();
         } catch {
             this._expression = 'Error';
         }
@@ -140,37 +115,9 @@ export class Calculator {
         this.updateDisplay();
     }
 
-    log(name) {
-        try {
-            const value = +eval(this._expression);
-            let result;
-
-            if (value <= 0) throw new Error('Log undefined for <= 0');
-
-            if (name === 'lg') {
-                result = Math.log10(value);
-            } else if (name === 'ln') {
-                result = Math.log(value);
-            } else {
-                throw new Error(`Unknown log type: ${name}`);
-            }
-
-            this._expression = Number(result.toFixed(8)).toString();
-        } catch {
-            this._expression = 'Error';
-        }
-        this.updateDisplay();
-    }
-
-    toggleAngleMode() {
-        this._angleMode = this._angleMode === 'deg' ? 'rad' : 'deg';
-        this.updateDisplay();
-    }
-
     trigonometry(name) {
         try {
             let value = +eval(this._expression);
-            if (this._angleMode === 'deg') value = value * Math.PI / 180;
 
             let result;
             switch (name) {
@@ -197,5 +144,92 @@ export class Calculator {
             this._expression = 'Error';
         }
         this.updateDisplay();
+    }
+
+    memoryClear() { this._memory = 0; }
+    memoryRecall() { this._expression = this._memory.toString(); this.updateDisplay(); }
+    memoryAdd() {
+        try { this._memory += parseFloat(eval(this._expression)); }
+        catch { this._expression = 'Error'; }
+    }
+    memorySubtract() {
+        try { this._memory -= parseFloat(eval(this._expression)); }
+        catch { this._expression = 'Error'; }
+    }
+
+    copyHistory(index) {
+        if (index >= 0 && index < this._history.length) {
+            this._buffer = this._history[index];
+        }
+    }
+
+    pasteFromBuffer() {
+        if (this._buffer !== null) {
+            this._expression += this._buffer;
+            this.updateDisplay();
+        }
+    }
+
+    historyPrevious() {
+        if (this._historyIndex > 0) {
+            this._historyIndex--;
+            this._expression = this._history[this._historyIndex];
+            this.updateDisplay();
+        }
+    }
+
+    historyNext() {
+        if (this._historyIndex < this._history.length - 1 && this._historyIndex >= 0) {
+            this._historyIndex++;
+            this._expression = this._history[this._historyIndex];
+            this.updateDisplay();
+        }
+    }
+
+    showHistoryList() {
+        const historyList = document.createElement('ul');
+        historyList.style.position = 'absolute';
+        historyList.style.background = 'white';
+        historyList.style.border = '1px solid black';
+        historyList.style.listStyleType = 'none';
+        historyList.style.padding = '0';
+        historyList.style.margin = '0';
+
+        this._history.forEach((item, index) => {
+            const listItem = document.createElement('li');
+            listItem.textContent = item;
+            listItem.style.padding = '5px';
+            listItem.style.cursor = 'pointer';
+
+            listItem.addEventListener('click', () => {
+                this._expression += item;
+                this.updateDisplay();
+                document.body.removeChild(historyList);
+            });
+
+            historyList.appendChild(listItem);
+        });
+
+        document.body.appendChild(historyList);
+    }
+
+    convertUnits(value, from, to, type) {
+        const conversionRates = {
+            length: { m: 1, cm: 100, mm: 1000, km: 0.001, in: 39.3701, ft: 3.28084 },
+            weights: { kg: 1, g: 1000, mg: 1e6, lb: 2.20462 },
+            area: { m2: 1, cm2: 10000, mm2: 1e6, km2: 0.000001 },
+            num_sys: { bin: 2, oct: 8, dec: 10, hex: 16 }
+        };
+
+        try {
+            if (type === 'num_sys') {
+                return parseInt(value, conversionRates[from]).toString(conversionRates[to]);
+            }
+            const baseValue = parseFloat(value) / conversionRates[type][from];
+            const convertedValue = baseValue * conversionRates[type][to];
+            return +convertedValue.toFixed(6);
+        } catch {
+            return 'Error';
+        }
     }
 }
