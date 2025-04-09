@@ -8,6 +8,7 @@ export class Calculator {
         this._historyIndex = -1; // Додаємо індекс історії
         this.display = displayElement;
         this.updateDisplay();
+        this._originalInput = '';
     }
 
     get expression() {
@@ -146,6 +147,19 @@ export class Calculator {
         this.updateDisplay();
     }
 
+    insertConstant(name) {
+        switch (name) {
+            case 'PI':
+                this.insert(Math.PI.toString());
+                break;
+            case 'E':
+                this.insert(Math.E.toString());
+                break;
+            default:
+                this.insert('0');
+        }
+    }
+
     memoryClear() { this._memory = 0; }
     memoryRecall() { this._expression = this._memory.toString(); this.updateDisplay(); }
     memoryAdd() {
@@ -159,10 +173,21 @@ export class Calculator {
 
     convertUnits(value, from, to, type) {
         const conversionRates = {
-            length: { m: 1, cm: 100, mm: 1000, km: 0.001, in: 39.3701, ft: 3.28084 },
-            weights: { kg: 1, g: 1000, mg: 1000000, lb: 2.20462 },
-            area: { m2: 1, cm2: 10000, mm2: 1e6, km2: 0.000001, ft2: 10.7639, in2: 1550 },
-            num_sys: { bin: 2, oct: 8, dec: 10, hex: 16 }
+            length: {
+                m: 1, cm: 0.01, mm: 0.001, km: 1000,
+                in: 0.0254, ft: 0.3048, yd: 0.9144, mi: 1609.34
+            },
+            weights: {
+                kg: 1, g: 0.001, mg: 0.000001,
+                lb: 0.453592, oz: 0.0283495
+            },
+            area: {
+                m2: 1, cm2: 0.0001, mm2: 0.000001,
+                km2: 1e6, ft2: 0.092903, in2: 0.00064516
+            },
+            num_sys: {
+                bin: 2, oct: 8, dec: 10, hex: 16
+            }
         };
 
         try {
@@ -172,23 +197,22 @@ export class Calculator {
                 return parseInt(value, fromBase).toString(toBase).toUpperCase();
             }
 
-            const fromRate = conversionRates[type][from];
-            const toRate = conversionRates[type][to];
+            const fromRate = conversionRates[type]?.[from];
+            const toRate = conversionRates[type]?.[to];
 
-            if (isNaN(fromRate) || isNaN(toRate)) {
-                return 'Error: Invalid unit';
+            if (!fromRate || !toRate || isNaN(parseFloat(value))) {
+                return 'Error: Invalid unit or input';
             }
 
-            const baseValue = parseFloat(value) / fromRate;
-            const convertedValue = baseValue * toRate;
+            const baseValue = parseFloat(value) * fromRate; // переводимо в базову одиницю
+            const convertedValue = baseValue / toRate; // переводимо з базової в потрібну
             return +convertedValue.toFixed(6);
-        } catch {
+        } catch (e) {
             return 'Error';
         }
     }
 
-
-    handleUnitConversion(type, fromSelect, toSelect) {
+    handleUnitConversion(type, fromSelect, toSelect, inputElement) {
         const unitTypes = {
             length: ['m', 'cm', 'mm', 'km', 'in', 'ft', 'yd', 'mi'],
             weights: ['kg', 'g', 'mg', 'lb', 'oz'],
@@ -196,7 +220,6 @@ export class Calculator {
             num_sys: ['bin', 'oct', 'dec', 'hex']
         };
 
-        // Заповнюємо списки from/to
         fromSelect.innerHTML = `<option value="" disabled selected>from:</option>`;
         toSelect.innerHTML = `<option value="" disabled selected>to:</option>`;
         unitTypes[type].forEach(unit => {
@@ -207,17 +230,20 @@ export class Calculator {
         fromSelect.dataset.type = type;
         toSelect.dataset.type = type;
 
-        // Додаємо обробники зміни значення
+        // Зберігаємо оригінальне введення лише один раз
+        const updateOriginal = () => {
+            this._originalInput = inputElement.textContent.trim();
+        };
+
         const performConversion = () => {
             const from = fromSelect.value;
             const to = toSelect.value;
             const selectedType = fromSelect.dataset.type;
+            const value = this._originalInput || inputElement.textContent.trim();
 
             if (from && to && selectedType) {
-                let value = this.expression;
-
                 if (selectedType === 'num_sys') {
-                    const fromBase =  this.getBase(from);
+                    const fromBase = this.getBase(from);
                     const regexMap = {
                         2: /^[01]+$/,
                         8: /^[0-7]+$/,
@@ -227,18 +253,27 @@ export class Calculator {
 
                     const regex = regexMap[fromBase];
                     if (!regex.test(value)) {
-                        this.expression = 'Error: Invalid input for base ' + fromBase;
+                        this.display.textContent = 'Error: Invalid input for base ' + fromBase;
                         return;
                     }
                 }
 
                 const result = this.convertUnits(value, from, to, selectedType);
-                this.expression = result.toString();
+                this.display.textContent = result.toString(); // НЕ this.expression!
             }
         };
 
+        // ✅ зберігаємо оригінал при першому вводі
+        inputElement.addEventListener('input', () => {
+            updateOriginal();
+            performConversion();
+        });
+
         fromSelect.addEventListener('change', performConversion);
         toSelect.addEventListener('change', performConversion);
+
+        // ⬅️ одразу зберегти перший стан
+        updateOriginal();
     }
 
     getBase(unit) {
@@ -246,16 +281,18 @@ export class Calculator {
         return bases[unit];
     }
 
-
     renderHistory(calculator) {
         if (calculator._history.length > 7) {
             calculator._history = calculator._history.slice(-7);
         }
 
         const items = document.querySelectorAll('.item.buffer');
+
+        // Скидаємо старі події й очищаємо
         items.forEach(item => {
             item.textContent = '';
-            item.replaceWith(item.cloneNode(true)); // Скидаємо попередні слухачі
+            const newItem = item.cloneNode(true);
+            item.replaceWith(newItem);
         });
 
         const freshItems = document.querySelectorAll('.item.buffer');
@@ -263,12 +300,16 @@ export class Calculator {
         calculator._history.forEach((text, i) => {
             const index = freshItems.length - calculator._history.length + i;
             if (freshItems[index]) {
-                freshItems[index].textContent = text;
+                const displayText = text.length > 4 ? text.slice(0, 4) + '…' : text;
+                freshItems[index].textContent = displayText;
+                freshItems[index].dataset.fullValue = text;
+
                 freshItems[index].addEventListener('click', () => {
-                    calculator.expression += text;
+                    calculator.expression += freshItems[index].dataset.fullValue;
                 });
             }
         });
     }
+
 
 }

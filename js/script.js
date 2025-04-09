@@ -23,6 +23,9 @@ buttons.forEach(button => {
             case 'equal':
                 calculator.equal();
                 calculator.renderHistory(calculator);
+                if (fromSelect.value && toSelect.value && fromSelect.dataset.type) {
+                    calculator.handleUnitConversion(fromSelect.dataset.type, fromSelect, toSelect, input);
+                }
                 break;
             case 'percent':
                 calculator.percent();
@@ -38,6 +41,9 @@ buttons.forEach(button => {
                 break;
             case 'trig':
                 calculator.trigonometry(value);
+                break;
+            case 'const':
+                calculator.insertConstant(value);
                 break;
             case 'memoryClear':
                 calculator.memoryClear();
@@ -58,11 +64,11 @@ buttons.forEach(button => {
                 break;
         }
     });
+});
 
-    document.querySelectorAll('.convert').forEach(div => {
-        div.addEventListener('click', () => {
-            const type = div.textContent.trim().toLowerCase();
-            calculator.handleUnitConversion(type, fromSelect, toSelect);
-        });
+document.querySelectorAll('.convert').forEach(div => {
+    div.addEventListener('click', () => {
+        const type = div.dataset.value; // або div.textContent.trim().toLowerCase()
+        calculator.handleUnitConversion(type, fromSelect, toSelect, input);
     });
 });
