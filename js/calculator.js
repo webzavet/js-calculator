@@ -157,79 +157,118 @@ export class Calculator {
         catch { this._expression = 'Error'; }
     }
 
-    copyHistory(index) {
-        if (index >= 0 && index < this._history.length) {
-            this._buffer = this._history[index];
-        }
-    }
-
-    pasteFromBuffer() {
-        if (this._buffer !== null) {
-            this._expression += this._buffer;
-            this.updateDisplay();
-        }
-    }
-
-    historyPrevious() {
-        if (this._historyIndex > 0) {
-            this._historyIndex--;
-            this._expression = this._history[this._historyIndex];
-            this.updateDisplay();
-        }
-    }
-
-    historyNext() {
-        if (this._historyIndex < this._history.length - 1 && this._historyIndex >= 0) {
-            this._historyIndex++;
-            this._expression = this._history[this._historyIndex];
-            this.updateDisplay();
-        }
-    }
-
-    showHistoryList() {
-        const historyList = document.createElement('ul');
-        historyList.style.position = 'absolute';
-        historyList.style.background = 'white';
-        historyList.style.border = '1px solid black';
-        historyList.style.listStyleType = 'none';
-        historyList.style.padding = '0';
-        historyList.style.margin = '0';
-
-        this._history.forEach((item, index) => {
-            const listItem = document.createElement('li');
-            listItem.textContent = item;
-            listItem.style.padding = '5px';
-            listItem.style.cursor = 'pointer';
-
-            listItem.addEventListener('click', () => {
-                this._expression += item;
-                this.updateDisplay();
-                document.body.removeChild(historyList);
-            });
-
-            historyList.appendChild(listItem);
-        });
-
-        document.body.appendChild(historyList);
-    }
-
     convertUnits(value, from, to, type) {
         const conversionRates = {
             length: { m: 1, cm: 100, mm: 1000, km: 0.001, in: 39.3701, ft: 3.28084 },
-            weights: { kg: 1, g: 1000, mg: 1e6, lb: 2.20462 },
-            area: { m2: 1, cm2: 10000, mm2: 1e6, km2: 0.000001 },
+            weights: { kg: 1, g: 1000, mg: 1000000, lb: 2.20462 },
+            area: { m2: 1, cm2: 10000, mm2: 1e6, km2: 0.000001, ft2: 10.7639, in2: 1550 },
             num_sys: { bin: 2, oct: 8, dec: 10, hex: 16 }
         };
 
         try {
             if (type === 'num_sys') {
-                return parseInt(value, conversionRates[from]).toString(conversionRates[to]);
+                const fromBase = conversionRates.num_sys[from];
+                const toBase = conversionRates.num_sys[to];
+                return parseInt(value, fromBase).toString(toBase).toUpperCase();
             }
-            const baseValue = parseFloat(value) / conversionRates[type][from];
-            const convertedValue = baseValue * conversionRates[type][to];
+
+            const fromRate = conversionRates[type][from];
+            const toRate = conversionRates[type][to];
+
+            if (isNaN(fromRate) || isNaN(toRate)) {
+                return 'Error: Invalid unit';
+            }
+
+            const baseValue = parseFloat(value) / fromRate;
+            const convertedValue = baseValue * toRate;
             return +convertedValue.toFixed(6);
         } catch {
             return 'Error';
         }
     }
+
+
+    handleUnitConversion(type, fromSelect, toSelect) {
+        const unitTypes = {
+            length: ['m', 'cm', 'mm', 'km', 'in', 'ft', 'yd', 'mi'],
+            weights: ['kg', 'g', 'mg', 'lb', 'oz'],
+            area: ['m2', 'cm2', 'mm2', 'km2', 'ft2', 'in2'],
+            num_sys: ['bin', 'oct', 'dec', 'hex']
+        };
+
+        // Заповнюємо списки from/to
+        fromSelect.innerHTML = `<option value="" disabled selected>from:</option>`;
+        toSelect.innerHTML = `<option value="" disabled selected>to:</option>`;
+        unitTypes[type].forEach(unit => {
+            fromSelect.appendChild(new Option(unit, unit));
+            toSelect.appendChild(new Option(unit, unit));
+        });
+
+        fromSelect.dataset.type = type;
+        toSelect.dataset.type = type;
+
+        // Додаємо обробники зміни значення
+        const performConversion = () => {
+            const from = fromSelect.value;
+            const to = toSelect.value;
+            const selectedType = fromSelect.dataset.type;
+
+            if (from && to && selectedType) {
+                let value = this.expression;
+
+                if (selectedType === 'num_sys') {
+                    const fromBase =  this.getBase(from);
+                    const regexMap = {
+                        2: /^[01]+$/,
+                        8: /^[0-7]+$/,
+                        10: /^\d+$/,
+                        16: /^[0-9A-Fa-f]+$/
+                    };
+
+                    const regex = regexMap[fromBase];
+                    if (!regex.test(value)) {
+                        this.expression = 'Error: Invalid input for base ' + fromBase;
+                        return;
+                    }
+                }
+
+                const result = this.convertUnits(value, from, to, selectedType);
+                this.expression = result.toString();
+            }
+        };
+
+        fromSelect.addEventListener('change', performConversion);
+        toSelect.addEventListener('change', performConversion);
+    }
+
+    getBase(unit) {
+        const bases = { bin: 2, oct: 8, dec: 10, hex: 16 };
+        return bases[unit];
+    }
+
+
+    renderHistory(calculator) {
+        if (calculator._history.length > 7) {
+            calculator._history = calculator._history.slice(-7);
+        }
+
+        const items = document.querySelectorAll('.item.buffer');
+        items.forEach(item => {
+            item.textContent = '';
+            item.replaceWith(item.cloneNode(true)); // Скидаємо попередні слухачі
+        });
+
+        const freshItems = document.querySelectorAll('.item.buffer');
+
+        calculator._history.forEach((text, i) => {
+            const index = freshItems.length - calculator._history.length + i;
+            if (freshItems[index]) {
+                freshItems[index].textContent = text;
+                freshItems[index].addEventListener('click', () => {
+                    calculator.expression += text;
+                });
+            }
+        });
+    }
+
 }
