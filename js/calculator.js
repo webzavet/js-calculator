@@ -3,9 +3,7 @@ export class Calculator {
         this._expression = '0';
         this._context = '';
         this._memory = 0;
-        this._buffer = null; // Додаємо буфер
-        this._history = []; // Додаємо історію обчислень
-        this._historyIndex = -1; // Додаємо індекс історії
+        this._history = [];
         this.display = displayElement;
         this.updateDisplay();
         this._originalInput = '';
@@ -58,8 +56,7 @@ export class Calculator {
 
             const result = eval(expr);
             this._expression = result.toString();
-            this._history.push(this._expression); // Додаємо результат до історії
-            this._historyIndex = this._history.length - 1;
+            this._history.push(this._expression);
         } catch (e) {
             this._expression = 'Error';
         }
@@ -204,8 +201,8 @@ export class Calculator {
                 return 'Error: Invalid unit or input';
             }
 
-            const baseValue = parseFloat(value) * fromRate; // переводимо в базову одиницю
-            const convertedValue = baseValue / toRate; // переводимо з базової в потрібну
+            const baseValue = parseFloat(value) * fromRate;
+            const convertedValue = baseValue / toRate;
             return +convertedValue.toFixed(6);
         } catch (e) {
             return 'Error';
@@ -230,7 +227,6 @@ export class Calculator {
         fromSelect.dataset.type = type;
         toSelect.dataset.type = type;
 
-        // Зберігаємо оригінальне введення лише один раз
         const updateOriginal = () => {
             this._originalInput = inputElement.textContent.trim();
         };
@@ -259,11 +255,10 @@ export class Calculator {
                 }
 
                 const result = this.convertUnits(value, from, to, selectedType);
-                this.display.textContent = result.toString(); // НЕ this.expression!
+                this.display.textContent = result.toString();
             }
         };
 
-        // ✅ зберігаємо оригінал при першому вводі
         inputElement.addEventListener('input', () => {
             updateOriginal();
             performConversion();
@@ -272,7 +267,6 @@ export class Calculator {
         fromSelect.addEventListener('change', performConversion);
         toSelect.addEventListener('change', performConversion);
 
-        // ⬅️ одразу зберегти перший стан
         updateOriginal();
     }
 
